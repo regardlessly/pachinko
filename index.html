@@ -423,6 +423,20 @@ function update(ts){
 }
 
 // ═══════════════════════════════════════════════════════════
+// GENERATED IMAGES (Nano Banana / Imagen 4)
+// ═══════════════════════════════════════════════════════════
+const IMG = {};
+function loadImg(key, src){
+  const img = new Image();
+  img.onload = () => { IMG[key] = img; };
+  img.onerror = () => {};  // graceful fallback if file missing
+  img.src = src;
+}
+loadImg('frame', 'frame.png');
+loadImg('bg',    'bg.png');
+loadImg('fever', 'fever.png');
+
+// ═══════════════════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════════════════
 function rr(x,y,w,h,r){
@@ -438,7 +452,14 @@ function render(ts){
   const now=Date.now();
   ctx.fillStyle='#060610'; ctx.fillRect(0,0,CW,CH);
 
-  // Outer neon border (fever = cycling hue)
+  // Machine frame image (Imagen 4 generated)
+  if(IMG.frame){
+    ctx.globalAlpha=0.85;
+    ctx.drawImage(IMG.frame,0,0,CW,CH);
+    ctx.globalAlpha=1;
+  }
+
+  // Outer neon border (fever = cycling hue) — drawn over frame
   const fc=G.fever?`hsl(${(now*.1)%360},100%,60%)`:'#ff00cc';
   ctx.shadowColor=fc; ctx.shadowBlur=16; ctx.strokeStyle=fc; ctx.lineWidth=4;
   rr(2,2,CW-4,CH-4,8); ctx.stroke(); ctx.shadowBlur=0;
@@ -450,8 +471,18 @@ function render(ts){
 
   drawScoreUI(now);
 
-  // Field background
-  ctx.fillStyle='#0c0c22'; ctx.fillRect(FX,FY,FW,FH);
+  // Field background — generated background image or solid fallback
+  if(IMG.bg){
+    ctx.save();
+    ctx.globalAlpha=0.55;
+    ctx.drawImage(IMG.bg,FX,FY,FW,FH);
+    ctx.globalAlpha=0.7;
+    ctx.fillStyle='#0a0a20';
+    ctx.fillRect(FX,FY,FW,FH);
+    ctx.restore();
+  } else {
+    ctx.fillStyle='#0c0c22'; ctx.fillRect(FX,FY,FW,FH);
+  }
   ctx.strokeStyle='#00ccff'; ctx.lineWidth=1.5; ctx.shadowColor='#00ccff'; ctx.shadowBlur=8;
   ctx.strokeRect(FX,FY,FW,FH); ctx.shadowBlur=0;
 
@@ -485,6 +516,13 @@ function render(ts){
     ctx.shadowBlur=0; ctx.globalAlpha=1;
   }
   if(G.fever){
+    // Fever celebration image (Imagen 4 generated) as dramatic background flash
+    if(IMG.fever){
+      const pulse=(Math.sin(now*.008)*.5+.5);
+      ctx.globalAlpha=pulse*0.32;
+      ctx.drawImage(IMG.fever,FX,FY,FW,FH);
+      ctx.globalAlpha=1;
+    }
     const pa=(Math.sin(now*.007)*.5+.5)*.12;
     ctx.fillStyle=`rgba(255,215,0,${pa})`; ctx.fillRect(FX,FY,FW,FH);
     ctx.textAlign='center'; ctx.font='bold 16px monospace';
