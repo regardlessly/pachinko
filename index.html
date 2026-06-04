@@ -419,8 +419,8 @@ function update(ts){
     G.pocketAssigned.delete(b);
   }
 
-  G.particles=G.particles.filter(p=>p.life>0);
   for(const p of G.particles){ p.x+=p.vx; p.y+=p.vy; p.vy+=.12; p.vx*=.93; p.life-=.035; }
+  G.particles=G.particles.filter(p=>p.life>0);
   if(G.flashMsg) G.flashMsg.t--;
   if(G.flashMsg?.t<=0) G.flashMsg=null;
 }
