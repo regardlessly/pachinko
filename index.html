@@ -82,6 +82,7 @@ const G={
   hi: parseInt(localStorage.getItem('pk_hi')||'0'),
   fever:false, feverT:0, totalFevers:0,
   dialPower:0,       // 0-1, STAYS where set (like a real knob)
+  lastFire:0,        // timestamp of last ball launch
   activeBalls:[],
   particles:[],
   pocketAssigned: new Map(),
@@ -89,7 +90,6 @@ const G={
   bonusPegCooldown: new Map(),
 };
 
-let fireInterval = null;
 let dialDragging = false;
 
 // ═══════════════════════════════════════════════════════════
@@ -268,19 +268,8 @@ function yToDial(canvasY){
 
 function setDial(p){
   G.dialPower = Math.max(0, Math.min(1, p));
-  if(G.dialPower > 0.04){
-    if(!fireInterval){
-      // Immediate first launch, then continuous
-      launchBall();
-      fireInterval = setInterval(()=>{
-        if(G.balls>0 && G.dialPower>0.04) launchBall();
-        else if(G.balls<=0){ clearInterval(fireInterval); fireInterval=null; }
-      }, 920);
-    }
-  } else {
-    G.dialPower=0;
-    if(fireInterval){ clearInterval(fireInterval); fireInterval=null; }
-  }
+  if(G.dialPower <= 0.04) G.dialPower = 0;
+  // Firing is handled in update() — no interval needed here
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -399,6 +388,13 @@ function update(ts){
   if(G.fever){ G.feverT-=dt/1000; if(G.feverT<=0){G.fever=false;G.feverT=0;playFeverEnd();} }
 
   Body.setAngle(deflector, deflector.angle+.013);
+
+  // Continuous firing — driven by game loop so it can never be permanently killed
+  const fireRate = 920;
+  if(G.dialPower > 0.04 && G.balls > 0 && now - G.lastFire >= fireRate){
+    G.lastFire = now;
+    launchBall();
+  }
 
   // Ball lifecycle
   const remove=[];
@@ -672,7 +668,7 @@ function drawDialPanel(now){
 
   const trackX=DIAL_CX, ty=DIAL_TY, by=DIAL_BY;
   const thumbY = ty + (1-G.dialPower)*(by-ty);
-  const firing = G.dialPower > 0.04 && fireInterval !== null;
+  const firing = G.dialPower > 0.04 && G.balls > 0;
 
   // Track background
   ctx.fillStyle='#0e0e1e'; ctx.fillRect(trackX-5,ty,10,by-ty);
