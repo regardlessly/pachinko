@@ -402,8 +402,8 @@ function update(ts){
     // Pocket detection
     if(b._enteredField && !G.pocketAssigned.has(b) && y>PKT_DETECT && b.velocity.y>0)
       G.pocketAssigned.set(b,getPocket(x));
-    // Remove conditions
-    if(y>FY2+30 || now-b._born>16000 || (b._enteredField&&(x<FX-30||x>FX2+30)))
+    // Remove conditions (y>FY2+30 only after entering field — rail balls spawn below FY2)
+    if((b._enteredField&&y>FY2+30) || now-b._born>16000 || (b._enteredField&&(x<FX-30||x>FX2+30)))
       remove.push(b);
   }
   for(const b of remove){
