@@ -284,30 +284,38 @@ function setDial(p){
 }
 
 // ═══════════════════════════════════════════════════════════
-// AUTHENTIC LAUNCH — up the right rail, power sets arc distance
+// LAUNCH — ball appears at top of field; power sets entry position (left↔right)
+// Physics root cause: gravity=1.8, travel height=580px → needs vy>45 to reach top,
+// but old code only gave vy≤34. Ball stalled and fell back every time.
 // ═══════════════════════════════════════════════════════════
 function launchBall(){
   if(G.balls<=0) return;
-  G.balls--;
-  // ±4% mechanical variation (simulates imprecision of real spring launcher)
+
   const p = G.dialPower + (Math.random()-.5)*0.08;
-  const cp = Math.max(0.05, Math.min(1.0, p));
+  const cp = Math.max(0, Math.min(1.0, p));
 
-  const startX=RAIL_CX, startY=CH-22;
+  // Below 15% power: not enough to reach field, refund
+  if(cp < 0.15){ playLaunch(); return; }
 
-  // Straight up the rail — speed scales with power
-  // The top curve converts upward speed to leftward speed
-  // Low power → slow → little leftward momentum → enters field right side
-  // High power → fast → lots of leftward momentum → enters field left side
-  const vy = -(20 + cp * 14);  // -20 to -34 (upward)
-  const vx = -(0.2);            // negligible drift in the channel
+  G.balls--;
 
-  const ball=Bodies.circle(startX,startY,BALL_R,{
-    label:'ball',restitution:.42,friction:.05,frictionAir:.004,density:.0025});
-  ball._born=Date.now();
-  ball._enteredField=false;
-  Body.setVelocity(ball,{x:vx+(Math.random()-.5)*.2, y:vy});
-  Composite.add(world,ball);
+  // Map power 0.15→1.0 to field entry x: right side → left side
+  // LOW  (15-40%)  → right quarter  (enters near right wall, long peg path)
+  // MED  (40-70%)  → center-right to center
+  // HIGH (70-90%)  → center to left
+  // MAX  (90-100%) → hard left (hits left wall, unpredictable — overshoot penalty)
+  const t = (cp - 0.15) / 0.85;  // 0=min, 1=max
+  const fieldL = FX + BALL_R + 4;
+  const fieldR = FX2 - BALL_R - 4;
+  const entryX = fieldR - t * (fieldR - fieldL) + (Math.random()-0.5) * 12;
+  const entryY = FY + BALL_R + 4;
+
+  const ball = Bodies.circle(entryX, entryY, BALL_R,
+    {label:'ball', restitution:.42, friction:.05, frictionAir:.004, density:.0025});
+  ball._born = Date.now();
+  ball._enteredField = true;
+  Body.setVelocity(ball, {x:(Math.random()-0.5)*1.5, y:1.5+Math.random()*0.5});
+  Composite.add(world, ball);
   G.activeBalls.push(ball);
   playLaunch();
 }
@@ -396,9 +404,8 @@ function update(ts){
   const remove=[];
   for(const b of G.activeBalls){
     const {x,y}=b.position;
+    // All balls spawn inside the field with _enteredField=true; this is a safety fallback
     if(!b._enteredField && x<FX2-BALL_R && y>FY+40 && y<FY2-PKT_H) b._enteredField=true;
-    // Low-power return: ball never entered field, heading back down the rail
-    if(!b._enteredField && b.velocity.y>0 && y>CH-65){ G.balls++; remove.push(b); continue; }
     // Pocket detection
     if(b._enteredField && !G.pocketAssigned.has(b) && y>PKT_DETECT && b.velocity.y>0)
       G.pocketAssigned.set(b,getPocket(x));
