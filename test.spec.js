@@ -88,7 +88,8 @@ test.describe('Pachinko Game E2E', () => {
 
         await page.mouse.move(dialX, box.y + box.height * 0.8);
         await page.mouse.down();
-        await page.mouse.move(dialX, box.y + box.height * 0.5, { steps: 5 });
+        // 0.4 of canvas height → ~61% dial power → ball enters center-left, hits scoring pockets
+        await page.mouse.move(dialX, box.y + box.height * 0.4, { steps: 5 });
 
         for (let i = 0; i < 3; i++) {
             await page.waitForTimeout(10000);
@@ -103,7 +104,9 @@ test.describe('Pachinko Game E2E', () => {
         const finalScore = await page.evaluate(() => G.score);
         const finalBalls = await page.evaluate(() => G.balls);
         expect(finalScore).toBeGreaterThan(0);
-        console.log(`Final: balls=${finalBalls}, score=${finalScore}`);
+        // House edge: ~74% OUT pockets → net drain. Allow up to +20 for fever variance.
+        expect(finalBalls, 'Economy must drain: balls should not exceed starting count by more than 20').toBeLessThan(270);
+        console.log(`Final: balls=${finalBalls}, score=${finalScore} (started 250, target <250)`);
     });
 
     test('6. Different power levels enter field at different positions', async ({ page }) => {
